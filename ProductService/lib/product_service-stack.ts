@@ -5,7 +5,7 @@ import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import {Runtime} from 'aws-cdk-lib/aws-lambda'
 import { join } from 'node:path';
 
-import {HttpApi, HttpMethod} from 'aws-cdk-lib/aws-apigatewayv2';
+import {HttpApi, HttpStage, HttpMethod, CorsHttpMethod} from 'aws-cdk-lib/aws-apigatewayv2';
 import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
 
 
@@ -25,7 +25,26 @@ export class ProductServiceStack extends cdk.Stack {
       entry: join(__dirname + "/handlers/get-products-by-id.ts"),
     });
 
-    const httpApi = new HttpApi(this, 'HttpApi');
+    const httpApi = new HttpApi(this, 'HttpApi', {
+      corsPreflight: {
+        allowMethods: [
+          CorsHttpMethod.GET,
+          CorsHttpMethod.POST,
+          CorsHttpMethod.PUT,
+          CorsHttpMethod.PATCH,
+          CorsHttpMethod.DELETE,
+          CorsHttpMethod.OPTIONS,
+        ],
+        allowHeaders: ["*"],
+        allowOrigins: ["*"],
+      }});
+
+    new HttpStage(this, 'Stage', {
+      httpApi,
+      stageName: 'dev',
+      autoDeploy: true
+    });
+
     const getProductsListIntegration = new HttpLambdaIntegration('GetProductsListIntegration', getProductsList);
     const getProductsByIdIntegration = new HttpLambdaIntegration('GetProductsByIdIntegration', getProductsById);
 
