@@ -1,4 +1,4 @@
-import * as cdk from 'aws-cdk-lib';
+import {CfnOutput, Stack, StackProps} from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
@@ -9,20 +9,20 @@ import {HttpApi, HttpStage, HttpMethod, CorsHttpMethod} from 'aws-cdk-lib/aws-ap
 import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
 
 
-export class ProductServiceStack extends cdk.Stack {
-  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
+export class ProductServiceStack extends Stack {
+  constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
 
     const getProductsList = new NodejsFunction(this, "getProductsListHandler", {
       runtime: Runtime.NODEJS_20_X,
       handler: "handler",
-      entry: join(__dirname + "/handlers/get-products-list.ts"),
+      entry: join(__dirname + "/handlers/get-products-list/get-products-list.ts"),
     });
 
     const getProductsById = new NodejsFunction(this, "getProductsByIdHandler", {
       runtime: Runtime.NODEJS_20_X,
       handler: "handler",
-      entry: join(__dirname + "/handlers/get-products-by-id.ts"),
+      entry: join(__dirname + "/handlers/get-products-by-id/get-products-by-id.ts"),
     });
 
     const httpApi = new HttpApi(this, 'HttpApi', {
@@ -48,7 +48,6 @@ export class ProductServiceStack extends cdk.Stack {
     const getProductsListIntegration = new HttpLambdaIntegration('GetProductsListIntegration', getProductsList);
     const getProductsByIdIntegration = new HttpLambdaIntegration('GetProductsByIdIntegration', getProductsById);
 
-
     httpApi.addRoutes({
       path: '/products',
       methods: [ HttpMethod.GET ],
@@ -59,6 +58,10 @@ export class ProductServiceStack extends cdk.Stack {
       path: '/products/{productId}',
       methods: [ HttpMethod.GET ],
       integration: getProductsByIdIntegration,
+    });
+
+    new CfnOutput(this, "HttpApiUrl", {
+      value: httpApi.url || "",
     });
   }
 }
