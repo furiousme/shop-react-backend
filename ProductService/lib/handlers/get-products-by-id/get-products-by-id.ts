@@ -11,7 +11,7 @@ export const handler = async (event: FIXME) => {
     if (isNaN(productId)) {
         return {
             statusCode: 400,
-            headers: defaultHeaders,
+            // headers: defaultHeaders,
             body: JSON.stringify({
                 error: {
                     message: "Invalid product id"
@@ -20,12 +20,12 @@ export const handler = async (event: FIXME) => {
         }
     }
 
-    const item = mockProducts.find(el => el.id === Number(productId));
+    const item = mockProducts.find(el => el.id === String(productId));
 
     if (!item) {
         return {
             statusCode: 404,
-            headers: defaultHeaders,
+            // headers: defaultHeaders,
             body: JSON.stringify({
                 error: {
                     message: "Product not found"
@@ -36,7 +36,7 @@ export const handler = async (event: FIXME) => {
 
     return {
         statusCode: 200,
-        headers: defaultHeaders,
+        // headers: defaultHeaders,
         body: JSON.stringify(item)
     }
 };

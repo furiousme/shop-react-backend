@@ -1,4 +1,4 @@
-import {CfnOutput, Stack, StackProps} from 'aws-cdk-lib';
+import {CfnOutput, RemovalPolicy, Stack, StackProps} from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
@@ -7,6 +7,8 @@ import { join } from 'node:path';
 
 import {HttpApi, HttpStage, HttpMethod, CorsHttpMethod} from 'aws-cdk-lib/aws-apigatewayv2';
 import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
+import { PRODUCTS_TABLE_NAME, STOCKS_TABLE_NAME } from '../constants';
+import { AttributeType, Table } from 'aws-cdk-lib/aws-dynamodb';
 
 
 export class ProductServiceStack extends Stack {
@@ -59,6 +61,26 @@ export class ProductServiceStack extends Stack {
       methods: [ HttpMethod.GET ],
       integration: getProductsByIdIntegration,
     });
+
+    const tables = [PRODUCTS_TABLE_NAME, STOCKS_TABLE_NAME];
+
+    tables.forEach((item) => {
+      const table = new Table(this, item, {
+        partitionKey: {
+          name: 'id',
+          type: AttributeType.STRING,
+          
+        },
+        removalPolicy: RemovalPolicy.DESTROY
+      });
+
+      table.grantReadData(getProductsList);
+      table.grantReadData(getProductsById);
+
+      new CfnOutput(this, `${item}--Output`, {
+        value: table.tableName
+      });
+    })
 
     new CfnOutput(this, "HttpApiUrl", {
       value: httpApi.url || "",
