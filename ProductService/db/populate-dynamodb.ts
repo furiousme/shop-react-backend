@@ -6,84 +6,49 @@ import {PRODUCTS_TABLE_NAME, STOCKS_TABLE_NAME} from "../constants"
 import { mapProductsToPutRequests, mapStocksToPutRequests } from "../utils/mappers";
 
 import { CloudFormationClient, DescribeStacksCommand } from "@aws-sdk/client-cloudformation" // ES Modules import
+import { productsTableInput, stocksTableInput } from "../mocks/db-inputs";
 
 type ErrorWithMessage = {
   message: string;
   name?: string;
 }
 
-const dbClientParams = process.env.NODE_ENV === "PRODUCTION" ? {} : {
+const isProd = process.env.NODE_ENV === "PRODUCTION";
+
+const dbClientParams = isProd ? {} : {
     endpoint: 'http://localhost:8000'
 }
 
-console.log(`>>> Current environment is: ${process.env.NODE_ENV} \n `);
-
-const client = new DynamoDBClient(dbClientParams);
-const docClient = DynamoDBDocumentClient.from(client);
-
+const dbClient = new DynamoDBClient(dbClientParams);
+const docClient = DynamoDBDocumentClient.from(dbClient);
 const cfClient = new CloudFormationClient();
 
+const fillTables = async (productsTableName: string, stocksTableName: string) => {
+  const productsRequests = mapProductsToPutRequests(mockProducts);
+  const stocksRequests = mapStocksToPutRequests(mockStocks);
 
-const productsTableInput = { 
-  AttributeDefinitions: [ 
-    {
-      AttributeName: "id", 
-      AttributeType: ScalarAttributeType.S,
-    },
-    {
-        AttributeName: "title", 
-        AttributeType: ScalarAttributeType.S,
-    },   
-  ],
-  TableName: PRODUCTS_TABLE_NAME, 
-  KeySchema: [ 
-    {
-      AttributeName: "id", 
-      KeyType: KeyType.HASH,
-    },
-    {
-      AttributeName: "title", 
-      KeyType: KeyType.RANGE,
-    },
-  ],
-  ProvisionedThroughput: {
-    ReadCapacityUnits: 5,
-    WriteCapacityUnits: 5, 
-  },
-  TableClass: TableClass.STANDARD,
-};
+  try {
+    const productsPromise = docClient.send(new BatchWriteCommand({
+      RequestItems: {
+          [productsTableName]: productsRequests,
+      },
+  }));
 
-const stocksTableInput = { 
-    AttributeDefinitions: [ 
-      {
-        AttributeName: "id", 
-        AttributeType: ScalarAttributeType.S,
+  const stocksPromise = docClient.send(new BatchWriteCommand({
+      RequestItems: {
+          [stocksTableName]: stocksRequests,
       },
-      {
-          AttributeName: "product_id", 
-          AttributeType: ScalarAttributeType.S,
-      },
-    ],
-    TableName: STOCKS_TABLE_NAME, 
-    KeySchema: [ 
-      {
-        AttributeName: "id", 
-        KeyType: KeyType.HASH,
-      },
-      {
-        AttributeName: "product_id", 
-        KeyType: KeyType.RANGE,
-      },
-    ],
-    ProvisionedThroughput: {
-      ReadCapacityUnits: 5,
-      WriteCapacityUnits: 5, 
-    },
-    TableClass: TableClass.STANDARD,
-};
+  }));
 
-const populateDynamoDB = async () => {
+  await Promise.all([productsPromise, stocksPromise]);
 
+  console.log(">>> Done. DB was populated! \n");
+  } catch (e) {
+    console.log(">>> Something went wrong while populating DB. Data might be not saved.", JSON.stringify(e));
+  }
+}
+
+const populateDynamoDBProd = async () => {
   let outputs;
   let productsTableName: string | undefined;
   let stocksTableName: string | undefined;
@@ -94,9 +59,6 @@ const populateDynamoDB = async () => {
     }));
   
     outputs = describeStacksResponse.Stacks?.[0].Outputs;
-
-    console.log({outputs});
-    console.log({describeStacksResponse});
 
     if (!outputs) throw new Error("No outputs");
 
@@ -115,59 +77,43 @@ const populateDynamoDB = async () => {
     process.exit(1);
   }
 
-  console.log({outputs});
-
-    // const existingTablesResponse = await docClient.send(new ListTablesCommand());
-    // const existingTables = existingTablesResponse.TableNames;
-
-    // const productsTableMissing = !existingTables?.includes(PRODUCTS_TABLE_NAME);
-    // const stocksTableMissing = !existingTables?.includes(STOCKS_TABLE_NAME);
-
-    // if (productsTableMissing) {
-    //     console.log(`>>> No ${PRODUCTS_TABLE_NAME} found. Going to create it...\n`);
-    //     const command = new CreateTableCommand(productsTableInput);
-
-    //     await client.send(command);
-    //     console.log(`>>> ${PRODUCTS_TABLE_NAME} was created \n`);
-    // }
-
-    // if (stocksTableMissing) {
-    //     console.log(`>>> No ${STOCKS_TABLE_NAME} found. Going to create it...\n`);
-    //     const command = new CreateTableCommand(stocksTableInput);
-
-    //     await client.send(command);
-    //     console.log(`>>> ${STOCKS_TABLE_NAME} was created \n`);
-    // }
-
-    const productsRequests = mapProductsToPutRequests(mockProducts);
-    const stocksRequests = mapStocksToPutRequests(mockStocks);
-
-    // wait until tables are created
-    // const timeout = productsTableMissing || stocksTableMissing ? 10000 : 0;
-
-    // if (timeout) console.log(">>> Need to wait until tables get 'active' status ... \n")
-
-    // setTimeout(async () => {
-      try {
-        const productsPromise = docClient.send(new BatchWriteCommand({
-          RequestItems: {
-              [productsTableName]: productsRequests,
-          },
-      }));
-  
-      const stocksPromise = docClient.send(new BatchWriteCommand({
-          RequestItems: {
-              [stocksTableName]: stocksRequests,
-          },
-      }));
-
-      await Promise.all([productsPromise, stocksPromise]);
-      console.log(">>> Done. DB was populated! \n");
-      } catch (e) {
-        console.log(">>> Something went wrong while populating DB. Data might be not saved.", JSON.stringify(e));
-      }
-    // }, timeout)
-
+  fillTables(productsTableName, stocksTableName);
 };
 
-populateDynamoDB();
+const populateDynamoDBLocally = async () => {
+    const existingTablesResponse = await docClient.send(new ListTablesCommand());
+    const existingTables = existingTablesResponse.TableNames;
+
+    const productsTableMissing = !existingTables?.includes(PRODUCTS_TABLE_NAME);
+    const stocksTableMissing = !existingTables?.includes(STOCKS_TABLE_NAME);
+
+    if (productsTableMissing) {
+        console.log(`>>> No ${PRODUCTS_TABLE_NAME} found. Going to create it...\n`);
+        const command = new CreateTableCommand(productsTableInput);
+
+        await dbClient.send(command);
+        console.log(`>>> ${PRODUCTS_TABLE_NAME} was created \n`);
+    }
+
+    if (stocksTableMissing) {
+        console.log(`>>> No ${STOCKS_TABLE_NAME} found. Going to create it...\n`);
+        const command = new CreateTableCommand(stocksTableInput);
+
+        await dbClient.send(command);
+        console.log(`>>> ${STOCKS_TABLE_NAME} was created \n`);
+    }
+
+    fillTables(PRODUCTS_TABLE_NAME, STOCKS_TABLE_NAME);
+}
+
+const populateDB = () => {
+  console.log(`>>> Current environment is: ${process.env.NODE_ENV} \n `);
+
+  if (isProd) {
+    populateDynamoDBProd();
+  } else {
+    populateDynamoDBLocally();
+  }
+}
+
+populateDB();
