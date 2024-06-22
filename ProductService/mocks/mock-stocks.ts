@@ -1,9 +1,9 @@
 export default [
-    {
-        "id": "498f1e8d-cc59-49de-81dc-a07fbc61c844",
-        "product_id": "b07102fd-f82a-4caa-9543-3e7a9a17f56f",
-        "count": 21
-    },
+    // {
+    //     "id": "498f1e8d-cc59-49de-81dc-a07fbc61c844",
+    //     "product_id": "b07102fd-f82a-4caa-9543-3e7a9a17f56f",
+    //     "count": 21
+    // },
     {
         "id": "3bb340ea-16f2-4c4b-b778-bbb357dd53bb",
         "product_id": "cdf6b78c-caaf-417f-89f5-fa6976586ffd",
@@ -33,6 +33,11 @@ export default [
         "id": "76cc1e6b-a02d-4af1-b2d3-2d28b0e59497",
         "product_id": "5e5c07d8-5f97-4716-9007-e3cc692f0594",
         "count": 38
+    },
+    {
+        "id": "2166cce8-c100-4620-8a6b-497995378de3",
+        "product_id": "21d00ccc-2787-43a9-81a9-5aea77a88e17",
+        "count": 60
     },
     {
         "id": "f21308e1-53a4-4864-89c1-c494c54fdc28",

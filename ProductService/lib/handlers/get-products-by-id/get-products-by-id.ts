@@ -6,6 +6,9 @@ export const defaultHeaders = {
 }
 
 export const handler = async (event: FIXME) => {
+    console.log("EVENT:", event );
+    console.log("ENVS:", process.env);
+    
     const productId = Number(event.pathParameters?.productId);
 
     if (isNaN(productId)) {

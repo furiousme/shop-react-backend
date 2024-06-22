@@ -1,3 +1,5 @@
+import { ScanCommandOutput } from "@aws-sdk/lib-dynamodb";
+
 export type Product = {
     id: string;
     title: string;
@@ -11,4 +13,9 @@ export type Stock = {
     count: number;
 }
 
+export type ProductWithStock = Product & Pick<Stock, 'count'>;
+
+export type TypedScanCommandOutput<T> = Omit<ScanCommandOutput, "Items"> & {
+    Items?: T,
+};
 export type FIXME = any;
