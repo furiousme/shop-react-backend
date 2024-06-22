@@ -1,8 +1,7 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocumentClient, ScanCommand } from "@aws-sdk/lib-dynamodb";
-import { FIXME, Product, Stock, TypedScanCommandOutput } from "../../../models";
+import { Product, Stock, TypedScanCommandOutput } from "../../../models";
 import { prepareProductsWithStock } from "../../../utils/prepare-products";
-import { PRODUCTS_TABLE_NAME, STOCKS_TABLE_NAME } from "../../../constants";
 
 export const defaultHeaders = {
   headers: { "Content-Type": "application/json" },
@@ -23,23 +22,15 @@ export const handler = async () => {
   const items = await Promise
     .all([productsPromise, stocksPromise])
     .then(([productsResponse, stocksResponse]) => {
-      console.log("PRODUCTS_RESPONSE", productsResponse);
-      console.log("STOCKS_RESPONSE", stocksResponse);
-
       const products = productsResponse.Items;
       const stocks = stocksResponse.Items;
-
-      console.log("PRODUCTS:", products);
-      console.log("STOCKS:", stocks);
 
       return products && stocks ? prepareProductsWithStock(products, stocks) : []
     })
     .catch((e) => {
-      console.log("ERROR", JSON.stringify(e));
+      console.log("ERROR:", JSON.stringify(e));
       return []
     })
-
-    console.log("ITEMS", items);
 
   return {
     statusCode: 200,

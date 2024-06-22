@@ -1,6 +1,6 @@
 import mockProducts from "../mocks/mock-products";
 import mockStocks from '../mocks/mock-stocks';
-import { DynamoDBClient, ListTablesCommand, CreateTableCommand, ScalarAttributeType, KeyType, TableClass } from "@aws-sdk/client-dynamodb";
+import { DynamoDBClient, ListTablesCommand, CreateTableCommand} from "@aws-sdk/client-dynamodb";
 import { BatchWriteCommand, DynamoDBDocumentClient, ScanCommand } from "@aws-sdk/lib-dynamodb";
 import {PRODUCTS_TABLE_NAME, STOCKS_TABLE_NAME} from "../constants"
 import { mapProductsToPutRequests, mapStocksToPutRequests } from "../utils/mappers";

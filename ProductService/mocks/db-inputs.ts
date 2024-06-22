@@ -1,5 +1,5 @@
-import { KeyType, ScalarAttributeType, TableClass } from "@aws-sdk/client-dynamodb";
-import { PRODUCTS_TABLE_NAME, STOCKS_TABLE_NAME } from "../constants";
+import { KeyType, ProjectionType, ScalarAttributeType, TableClass } from "@aws-sdk/client-dynamodb";
+import { PRODUCTS_TABLE_NAME, STOCKS_BY_PRODUCT_INDEX_NAME, STOCKS_TABLE_NAME } from "../constants";
 
 export const productsTableInput = { 
     AttributeDefinitions: [ 
@@ -56,5 +56,24 @@ export const stocksTableInput = {
         ReadCapacityUnits: 5,
         WriteCapacityUnits: 5, 
       },
+      GlobalSecondaryIndexes: [ 
+        {
+          IndexName: STOCKS_BY_PRODUCT_INDEX_NAME, 
+          KeySchema: [ 
+            {
+              AttributeName: "product_id", 
+              KeyType: KeyType.HASH, 
+            },
+          ],
+          ProvisionedThroughput: { 
+            ReadCapacityUnits: 5, 
+            WriteCapacityUnits: 5, 
+          },
+          Projection: { 
+            ProjectionType: ProjectionType.ALL,
+          },
+        },
+      ],
       TableClass: TableClass.STANDARD,
   };
+  

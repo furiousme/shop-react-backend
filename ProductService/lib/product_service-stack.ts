@@ -1,4 +1,4 @@
-import { PRODUCTS_TABLE_NAME, STOCKS_TABLE_NAME } from './../constants';
+import { PRODUCTS_TABLE_NAME, STOCKS_BY_PRODUCT_INDEX_NAME, STOCKS_TABLE_NAME } from './../constants';
 import {CfnOutput, RemovalPolicy, Stack, StackProps} from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 
@@ -26,7 +26,17 @@ export class ProductServiceStack extends Stack {
         removalPolicy: RemovalPolicy.DESTROY
       });
 
-      new CfnOutput(this, `${item}--Output`, {
+      if (item === STOCKS_TABLE_NAME) {
+        table.addGlobalSecondaryIndex({
+          indexName: STOCKS_BY_PRODUCT_INDEX_NAME,
+          partitionKey: {
+            name: 'product_id',
+            type: AttributeType.STRING
+          },
+        })
+      }
+
+      new CfnOutput(this, `${item}Output`, {
         value: table.tableName
       });
 
