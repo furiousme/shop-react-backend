@@ -1,15 +1,11 @@
 import { AttributeValue, DynamoDBClient, QueryCommand } from "@aws-sdk/client-dynamodb";
-import mockProducts from "../../../mocks/mock-products"
 import { FIXME, Product, Stock, TypedQueryCommandOutput } from "../../../models";
 import { prepareProductsWithStock } from "../../../utils/prepare-products";
 import { DynamoDBDocumentClient } from "@aws-sdk/lib-dynamodb";
-import { PRODUCTS_TABLE_NAME, STOCKS_BY_PRODUCT_INDEX_NAME, STOCKS_TABLE_NAME } from "../../../constants";
+import { STOCKS_BY_PRODUCT_INDEX_NAME } from "../../../constants";
 import { unmarshallItems } from "../../../utils/unmarshall-items";
 
-export const defaultHeaders = {
-    headers: { "Content-Type": "application/json" },
-}
-
+export const defaultHeaders = { "Content-Type": "application/json" };
 
 // const client = new DynamoDBClient({endpoint: "http://localhost:8000"});
 
@@ -25,7 +21,7 @@ export const handler = async (event: FIXME) => {
     if (!productId) {
         return {
             statusCode: 400,
-            // headers: defaultHeaders,
+            headers: defaultHeaders,
             body: JSON.stringify({
                 error: {
                     message: "Product id required"
@@ -64,14 +60,14 @@ export const handler = async (event: FIXME) => {
             return preparedProducts[0];
         })
         .catch((e) => {
-            console.log("ERROR", JSON.stringify(e));
+            console.log("ERROR:", JSON.stringify(e));
             return null
         })
     
     if (!item) {
         return {
             statusCode: 404,
-            // headers: defaultHeaders,
+            headers: defaultHeaders,
             body: JSON.stringify({
                 error: { message: "Product not found" }              
             }),
@@ -80,7 +76,7 @@ export const handler = async (event: FIXME) => {
 
     return {
         statusCode: 200,
-        // headers: defaultHeaders,
+        headers: defaultHeaders,
         body: JSON.stringify(item)
     }
 };

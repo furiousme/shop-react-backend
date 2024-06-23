@@ -3,9 +3,7 @@ import { DynamoDBDocumentClient, ScanCommand } from "@aws-sdk/lib-dynamodb";
 import { Product, Stock, TypedScanCommandOutput } from "../../../models";
 import { prepareProductsWithStock } from "../../../utils/prepare-products";
 
-export const defaultHeaders = {
-  headers: { "Content-Type": "application/json" },
-}
+export const defaultHeaders = { "Content-Type": "application/json" };
 
 const client = new DynamoDBClient();
 const docClient = DynamoDBDocumentClient.from(client);

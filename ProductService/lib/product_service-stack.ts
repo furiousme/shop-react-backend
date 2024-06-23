@@ -55,6 +55,13 @@ export class ProductServiceStack extends Stack {
       environment: tableNamesAsEnvs,
     });
 
+    const createProduct = new NodejsFunction(this, "createProductHandler", {
+      runtime: Runtime.NODEJS_20_X,
+      handler: "handler",
+      entry: join(__dirname + "/handlers/create-product/create-product.ts"),
+      environment: tableNamesAsEnvs,
+    });
+
     const getProductsById = new NodejsFunction(this, "getProductsByIdHandler", {
       runtime: Runtime.NODEJS_20_X,
       handler: "handler",
@@ -65,6 +72,7 @@ export class ProductServiceStack extends Stack {
     Object.values(tableNamePairs).forEach(table => {
       table.grantReadData(getProductsList);
       table.grantReadData(getProductsById);
+      table.grantReadWriteData(createProduct);
     })
 
     const httpApi = new HttpApi(this, 'HttpApi', {
@@ -77,7 +85,7 @@ export class ProductServiceStack extends Stack {
           CorsHttpMethod.DELETE,
           CorsHttpMethod.OPTIONS,
         ],
-        allowHeaders: ["*"],
+        allowHeaders: ['Content-Type', 'X-Amz-Date', 'X-Amz-Security-Token', 'Authorization', 'X-Api-Key', 'X-Requested-With', 'Accept', 'Access-Control-Allow-Methods', 'Access-Control-Allow-Origin', 'Access-Control-Allow-Headers'],
         allowOrigins: ["*"],
     }});
 
@@ -91,6 +99,12 @@ export class ProductServiceStack extends Stack {
       path: '/products',
       methods: [ HttpMethod.GET ],
       integration: new HttpLambdaIntegration('GetProductsListIntegration', getProductsList),
+    });
+
+    httpApi.addRoutes({
+      path: '/products',
+      methods: [ HttpMethod.POST ],
+      integration: new HttpLambdaIntegration('CreateProductIntegration', createProduct),
     });
 
     httpApi.addRoutes({
