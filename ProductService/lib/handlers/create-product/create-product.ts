@@ -6,6 +6,7 @@ import Ajv from "ajv"
 
 
 import {randomUUID} from "node:crypto"; 
+import { ProductSchema } from "../../../schemas";
 
 const defaultHeaders = {
     "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,X-Amz-Security-Token,Authorization,X-Api-Key,X-Requested-With,Accept,Access-Control-Allow-Methods,Access-Control-Allow-Origin,Access-Control-Allow-Headers",
@@ -17,17 +18,6 @@ const defaultHeaders = {
 const client = new DynamoDBClient();
 const docClient = DynamoDBDocumentClient.from(client);
 
-const schema = {
-    type: "object",
-    properties: {
-        title: {type: "string"},
-        description: {type: "string"},
-        count: {type: "integer"},
-        price: {type: "number", "minimum": 0.01}
-    },
-    required: ["title", "description", "count", "price"],
-}
-
 const ajv = new Ajv();
 
 export const handler = async (event: APIGatewayProxyEvent) => {
@@ -35,7 +25,7 @@ export const handler = async (event: APIGatewayProxyEvent) => {
 
     console.log("BODY:", parsedBody);
 
-    const validate = ajv.compile<Omit<ProductWithStock, "id">>(schema)
+    const validate = ajv.compile<Omit<ProductWithStock, "id">>(ProductSchema)
     const valid = validate(parsedBody);
 
     if (!valid) {
