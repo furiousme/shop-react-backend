@@ -1,0 +1,54 @@
+openapi: "3.0.1"
+info:
+  title: "HttpApi"
+  version: "2024-06-14 19:25:09UTC"
+servers:
+- url: "https://iv1pz01fac.execute-api.eu-west-1.amazonaws.com/{basePath}"
+  variables:
+    basePath:
+      default: "dev"
+paths:
+  /products:
+    get:
+      responses:
+        default:
+          description: "Default response for GET /products"
+      x-amazon-apigateway-integration:
+        payloadFormatVersion: "2.0"
+        type: "aws_proxy"
+        httpMethod: "POST"
+        uri: "arn:aws:apigateway:eu-west-1:lambda:path/2015-03-31/functions/arn:aws:lambda:eu-west-1:471112778120:function:ProductServiceStack-getProductsListHandler9655B6FA-4iIF4ase0I6c/invocations"
+        connectionType: "INTERNET"
+  /products/{productId}:
+    get:
+      responses:
+        default:
+          description: "Default response for GET /products/{productId}"
+      x-amazon-apigateway-integration:
+        payloadFormatVersion: "2.0"
+        type: "aws_proxy"
+        httpMethod: "POST"
+        uri: "arn:aws:apigateway:eu-west-1:lambda:path/2015-03-31/functions/arn:aws:lambda:eu-west-1:471112778120:function:ProductServiceStack-getProductsByIdHandler766C24C1-PiG9SHr7hCGB/invocations"
+        connectionType: "INTERNET"
+    parameters:
+    - name: "productId"
+      in: "path"
+      description: "Generated path parameter for productId"
+      required: true
+      schema:
+        type: "string"
+x-amazon-apigateway-cors:
+  allowMethods:
+  - "DELETE"
+  - "GET"
+  - "OPTIONS"
+  - "PATCH"
+  - "POST"
+  - "PUT"
+  allowHeaders:
+  - "*"
+  maxAge: -42
+  allowCredentials: false
+  allowOrigins:
+  - "*"
+x-amazon-apigateway-importexport-version: "1.0"
