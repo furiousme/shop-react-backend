@@ -1,9 +1,9 @@
 export default [
-    // {
-    //     "id": "498f1e8d-cc59-49de-81dc-a07fbc61c844",
-    //     "product_id": "b07102fd-f82a-4caa-9543-3e7a9a17f56f",
-    //     "count": 21
-    // },
+    {
+        "id": "498f1e8d-cc59-49de-81dc-a07fbc61c844",
+        "product_id": "b07102fd-f82a-4caa-9543-3e7a9a17f56f",
+        "count": 21
+    },
     {
         "id": "3bb340ea-16f2-4c4b-b778-bbb357dd53bb",
         "product_id": "cdf6b78c-caaf-417f-89f5-fa6976586ffd",

@@ -24,7 +24,7 @@ export const handler = async (event: FIXME) => {
             headers: defaultHeaders,
             body: JSON.stringify({
                 error: {
-                    message: "Product id required"
+                    message: "Product id is required"
                 } 
             })
         }
@@ -47,36 +47,41 @@ export const handler = async (event: FIXME) => {
         KeyConditionExpression: `product_id = :product_id`,
     })) as Promise<TypedQueryCommandOutput<Record<string, AttributeValue>[]>>;
 
-    const item = await Promise
+    const response = await Promise
         .all([productsPromise, stocksPromise])
         .then(([productsResponse, stocksResponse]) => {
-            console.log("PRODUCTS_RESPONSE", productsResponse);
-            console.log("STOCKS_RESPONSE", stocksResponse);
-
             const products = productsResponse.Items &&  unmarshallItems<Product>(productsResponse.Items);
             const stocks = stocksResponse.Items && unmarshallItems<Stock>(stocksResponse.Items);
             const preparedProducts = products && stocks ? prepareProductsWithStock(products, stocks) : []
+            const item = preparedProducts[0];
 
-            return preparedProducts[0];
+            if (!item) {
+                return {
+                    statusCode: 404,
+                    headers: defaultHeaders,
+                    body: JSON.stringify({
+                        error: { message: "Product not found" }              
+                    }),
+                }
+            }
+
+            return {
+                statusCode: 200,
+                headers: defaultHeaders,
+                body: JSON.stringify(item)
+            }
         })
         .catch((e) => {
             console.log("ERROR:", JSON.stringify(e));
-            return null
+            
+            return {
+                statusCode: 500,
+                headers: defaultHeaders,
+                body: JSON.stringify({
+                    error: { message: "Internal error" }              
+                }),
+            }
         })
-    
-    if (!item) {
-        return {
-            statusCode: 404,
-            headers: defaultHeaders,
-            body: JSON.stringify({
-                error: { message: "Product not found" }              
-            }),
-        }
-    }
 
-    return {
-        statusCode: 200,
-        headers: defaultHeaders,
-        body: JSON.stringify(item)
-    }
+    return response;
 };

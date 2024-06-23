@@ -17,21 +17,31 @@ export const handler = async () => {
     TableName: process.env.STOCKS_TABLE_NAME,
   })) as Promise<TypedScanCommandOutput<Stock[]>>;
 
-  const items = await Promise
+  const response = await Promise
     .all([productsPromise, stocksPromise])
     .then(([productsResponse, stocksResponse]) => {
       const products = productsResponse.Items;
       const stocks = stocksResponse.Items;
 
-      return products && stocks ? prepareProductsWithStock(products, stocks) : []
+      console.log({products, stocks});
+
+      const items =  products && stocks ? prepareProductsWithStock(products, stocks) : [];
+
+      return {
+        statusCode: 200,
+        headers: defaultHeaders,
+        body: JSON.stringify(items)
+      }
     })
     .catch((e) => {
       console.log("ERROR:", JSON.stringify(e));
-      return []
+      
+      return {
+        statusCode: 500,
+        headers: defaultHeaders,
+        body: JSON.stringify({success: false, message: "Internal error"})
+      }
     })
 
-  return {
-    statusCode: 200,
-    body: JSON.stringify(items)
-  }
+    return response;
 };

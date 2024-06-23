@@ -8,7 +8,7 @@ import { join } from 'node:path';
 
 import {HttpApi, HttpStage, HttpMethod, CorsHttpMethod} from 'aws-cdk-lib/aws-apigatewayv2';
 import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
-import { AttributeType, Table } from 'aws-cdk-lib/aws-dynamodb';
+import { AttributeType, TableV2 } from 'aws-cdk-lib/aws-dynamodb';
 
 
 const tablesList = [PRODUCTS_TABLE_NAME, STOCKS_TABLE_NAME];
@@ -17,8 +17,8 @@ export class ProductServiceStack extends Stack {
   constructor(scope: Construct, id: string, props?: StackProps) {
     super(scope, id, props);
 
-    const tableNamePairs: Record<string, Table> = tablesList.reduce((acc, item) => {
-      const table = new Table(this, item, {
+    const tableNamePairs: Record<string, TableV2> = tablesList.reduce((acc, item) => {
+      const table = new TableV2(this, item, {
         partitionKey: {
           name: 'id',
           type: AttributeType.STRING,
@@ -41,7 +41,7 @@ export class ProductServiceStack extends Stack {
       });
 
       return {...acc, [item]: table}
-    }, {} as Record<string, Table>)
+    }, {} as Record<string, TableV2>)
 
     const tableNamesAsEnvs = {
       "PRODUCTS_TABLE_NAME": tableNamePairs[PRODUCTS_TABLE_NAME].tableName,

@@ -1,7 +1,7 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { ProductWithStock} from "../../../models";
 import {APIGatewayProxyEvent} from "aws-lambda";
-import { DynamoDBDocumentClient, PutCommand } from "@aws-sdk/lib-dynamodb";
+import { DynamoDBDocumentClient, TransactWriteCommand } from "@aws-sdk/lib-dynamodb";
 import Ajv from "ajv"
 
 
@@ -59,16 +59,26 @@ export const handler = async (event: APIGatewayProxyEvent) => {
 
     try {
         const newProduct = {description, price, title, id: newProductId};
+        const newStock = { count, id: randomUUID(), product_id:  newProduct.id}
+      
+        await docClient.send(new TransactWriteCommand({
+            TransactItems: [
+              {
+                Put: {
+                  TableName: process.env.PRODUCTS_TABLE_NAME,
+                  Item: newProduct,
+                },
+              },
+              {
+                Put: {
+                  TableName: process.env.STOCKS_TABLE_NAME,
+                  Item: newStock,
+                },
+              },
+            ],
+        }));
 
-        await docClient.send(new PutCommand({
-            TableName: process.env.PRODUCTS_TABLE_NAME,
-            Item: newProduct
-          }));
-        
-        await docClient.send(new PutCommand({
-            TableName: process.env.STOCKS_TABLE_NAME,
-            Item: { count, id: randomUUID(), product_id:  newProduct.id}
-          }));
+        console.log("ITEM WAS CREATED");
 
         return {
             statusCode: 200,
