@@ -1,12 +1,19 @@
 openapi: "3.0.1"
 info:
   title: "HttpApi"
-  version: "2024-06-14 19:25:09UTC"
+  version: "2024-06-23 17:03:20UTC"
 servers:
-- url: "https://iv1pz01fac.execute-api.eu-west-1.amazonaws.com/{basePath}"
-  variables:
-    basePath:
-      default: "dev"
+  - url: "https://scavie2it6.execute-api.eu-west-1.amazonaws.com/{basePath}"
+    variables:
+      basePath:
+        default: ""
+tags:
+  - name: "aws:cloudformation:stack-id"
+    x-amazon-apigateway-tag-value: "arn:aws:cloudformation:eu-west-1:471112778120:stack/ProductServiceStack/f84ed150-317e-11ef-8b34-06f68b83ae05"
+  - name: "aws:cloudformation:stack-name"
+    x-amazon-apigateway-tag-value: "ProductServiceStack"
+  - name: "aws:cloudformation:logical-id"
+    x-amazon-apigateway-tag-value: "HttpApiF5A9A8A7"
 paths:
   /products:
     get:
@@ -17,7 +24,23 @@ paths:
         payloadFormatVersion: "2.0"
         type: "aws_proxy"
         httpMethod: "POST"
-        uri: "arn:aws:apigateway:eu-west-1:lambda:path/2015-03-31/functions/arn:aws:lambda:eu-west-1:471112778120:function:ProductServiceStack-getProductsListHandler9655B6FA-4iIF4ase0I6c/invocations"
+        uri: "arn:aws:apigateway:eu-west-1:lambda:path/2015-03-31/functions/arn:aws:lambda:eu-west-1:471112778120:function:ProductServiceStack-getProductsListHandler9655B6FA-mVrADbyFmLMB/invocations"
+        connectionType: "INTERNET"
+    post:
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#components/schemas/Product"
+      responses:
+        default:
+          description: "Default response for POST /products"
+      x-amazon-apigateway-integration:
+        payloadFormatVersion: "2.0"
+        type: "aws_proxy"
+        httpMethod: "POST"
+        uri: "arn:aws:apigateway:eu-west-1:lambda:path/2015-03-31/functions/arn:aws:lambda:eu-west-1:471112778120:function:ProductServiceStack-createProductHandler0ABAE4AF-rbq3YUanL6SS/invocations"
         connectionType: "INTERNET"
   /products/{productId}:
     get:
@@ -28,27 +51,56 @@ paths:
         payloadFormatVersion: "2.0"
         type: "aws_proxy"
         httpMethod: "POST"
-        uri: "arn:aws:apigateway:eu-west-1:lambda:path/2015-03-31/functions/arn:aws:lambda:eu-west-1:471112778120:function:ProductServiceStack-getProductsByIdHandler766C24C1-PiG9SHr7hCGB/invocations"
+        uri: "arn:aws:apigateway:eu-west-1:lambda:path/2015-03-31/functions/arn:aws:lambda:eu-west-1:471112778120:function:ProductServiceStack-getProductsByIdHandler766C24C1-xWBsOw1yoT34/invocations"
         connectionType: "INTERNET"
     parameters:
-    - name: "productId"
-      in: "path"
-      description: "Generated path parameter for productId"
-      required: true
-      schema:
-        type: "string"
+      - name: "productId"
+        in: "path"
+        description: "Generated path parameter for productId"
+        required: true
+        schema:
+          type: "string"
 x-amazon-apigateway-cors:
   allowMethods:
-  - "DELETE"
-  - "GET"
-  - "OPTIONS"
-  - "PATCH"
-  - "POST"
-  - "PUT"
+    - "DELETE"
+    - "GET"
+    - "OPTIONS"
+    - "PATCH"
+    - "POST"
+    - "PUT"
   allowHeaders:
-  - "*"
+    - "accept"
+    - "access-control-allow-headers"
+    - "access-control-allow-methods"
+    - "access-control-allow-origin"
+    - "authorization"
+    - "content-type"
+    - "x-amz-date"
+    - "x-amz-security-token"
+    - "x-api-key"
+    - "x-requested-with"
   maxAge: -42
   allowCredentials: false
   allowOrigins:
-  - "*"
+    - "*"
 x-amazon-apigateway-importexport-version: "1.0"
+components:
+  schemas:
+    Product:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        price:
+          type: number
+          minimum: 0.01
+        count:
+          type: integer
+          minimum: 0
+      required:
+        - title
+        - description
+        - price
+        - count
