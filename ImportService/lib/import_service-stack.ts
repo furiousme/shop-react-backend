@@ -2,12 +2,13 @@ import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import { CfnOutput, RemovalPolicy } from 'aws-cdk-lib';
 
-import {Bucket, BlockPublicAccess, HttpMethods} from "aws-cdk-lib/aws-s3"
+import {Bucket, BlockPublicAccess, HttpMethods, EventType} from "aws-cdk-lib/aws-s3"
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { Runtime } from 'aws-cdk-lib/aws-lambda';
 import { join } from 'node:path';
-import { Deployment, LambdaIntegration, LambdaRestApi, RestApi, Stage } from 'aws-cdk-lib/aws-apigateway';
+import { Deployment, LambdaIntegration, LambdaRestApi, Stage } from 'aws-cdk-lib/aws-apigateway';
 import { CorsHttpMethod } from 'aws-cdk-lib/aws-apigatewayv2';
+import { LambdaDestination } from 'aws-cdk-lib/aws-s3-notifications';
 
 
 export class ImportServiceStack extends cdk.Stack {
@@ -37,7 +38,21 @@ export class ImportServiceStack extends cdk.Stack {
       }
     });
 
+    const importFileParser = new NodejsFunction(this, "importFileParserHandler", {
+      runtime: Runtime.NODEJS_20_X,
+      handler: "handler",
+      entry: join(__dirname + "/handlers/import-file-parser/import-file-parser.ts"),
+      environment: {
+        // PARSED_BUCKET_NAME: "" // TODO: create another bucket
+      }
+    });
+
     bucket.grantPut(importProductsFile);
+    bucket.grantRead(importFileParser);
+
+    bucket.addEventNotification(EventType.OBJECT_CREATED, new LambdaDestination(importFileParser), {
+      prefix: 'uploaded/'
+    });
 
     const restApi = new LambdaRestApi(this, 'ImportServiceRestApi', {
         handler: importProductsFile,
@@ -64,11 +79,11 @@ export class ImportServiceStack extends cdk.Stack {
   const importsIntegration = new LambdaIntegration(importProductsFile)
 
   importResource.addMethod("GET", importsIntegration,
-     {
-      requestParameters:  {
-        "method.request.querystring.name": true
+      {
+        requestParameters:  {
+          "method.request.querystring.name": true
+        }
       }
-    }
     );
 
     new CfnOutput(this, "ImportApiUrl", {
