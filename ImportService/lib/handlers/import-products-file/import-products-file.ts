@@ -23,7 +23,9 @@ export const handler = async (event: APIGatewayEvent) => {
             headers: defaultHeaders,
             body: JSON.stringify({
                 success: false,
-                message: "File name should be provided as a query parameter"
+                error: {
+                    message: "File name should be provided as a query parameter"
+                }
             })
         }
     }

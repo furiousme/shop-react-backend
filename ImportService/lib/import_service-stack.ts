@@ -21,9 +21,9 @@ export class ImportServiceStack extends cdk.Stack {
       removalPolicy: RemovalPolicy.DESTROY,
       autoDeleteObjects: true,
       cors: [{
-        allowedOrigins: ["http://localhost:3000", "https://d131jdsjeiombn.cloudfront.net/"],
+        allowedOrigins: ["*"],
         allowedHeaders: ["*"],
-        maxAge: 3000,
+        maxAge: 3600,
         allowedMethods: [HttpMethods.PUT, HttpMethods.POST]
       }]
     });
@@ -47,7 +47,7 @@ export class ImportServiceStack extends cdk.Stack {
       }
     });
 
-    bucket.grantPut(importProductsFile);
+    bucket.grantReadWrite(importProductsFile);
     bucket.grantRead(importFileParser);
 
     bucket.addEventNotification(EventType.OBJECT_CREATED, new LambdaDestination(importFileParser), {
