@@ -28,6 +28,12 @@ export class ImportServiceStack extends cdk.Stack {
       }]
     });
 
+    const destinationBucket = new Bucket(this, 'ProductsFilesDestinationBucket', {
+      blockPublicAccess: BlockPublicAccess.BLOCK_ALL,
+      removalPolicy: RemovalPolicy.DESTROY,
+      autoDeleteObjects: true,
+    });
+
 
     const importProductsFile = new NodejsFunction(this, "importProductsFileHandler", {
       runtime: Runtime.NODEJS_20_X,
@@ -43,12 +49,13 @@ export class ImportServiceStack extends cdk.Stack {
       handler: "handler",
       entry: join(__dirname + "/handlers/import-file-parser/import-file-parser.ts"),
       environment: {
-        // PARSED_BUCKET_NAME: "" // TODO: create another bucket
+        DESTINATION_BUCKET_NAME: destinationBucket.bucketName,
       }
     });
 
     bucket.grantReadWrite(importProductsFile);
-    bucket.grantRead(importFileParser);
+    bucket.grantReadWrite(importFileParser);
+    destinationBucket.grantWrite(importFileParser);
 
     bucket.addEventNotification(EventType.OBJECT_CREATED, new LambdaDestination(importFileParser), {
       prefix: 'uploaded/'
