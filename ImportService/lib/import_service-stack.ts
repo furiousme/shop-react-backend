@@ -1,3 +1,4 @@
+import { SQS_QUEUE_NAME } from './../../ProductService/constants';
 import * as cdk from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import { CfnOutput, RemovalPolicy } from 'aws-cdk-lib';
@@ -14,7 +15,6 @@ import { LambdaDestination } from 'aws-cdk-lib/aws-s3-notifications';
 export class ImportServiceStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
     super(scope, id, props);
-
 
     const bucket = new Bucket(this, 'ImportProductsFileBucket', {
       blockPublicAccess: BlockPublicAccess.BLOCK_ALL,
@@ -50,6 +50,7 @@ export class ImportServiceStack extends cdk.Stack {
       entry: join(__dirname + "/handlers/import-file-parser/import-file-parser.ts"),
       environment: {
         DESTINATION_BUCKET_NAME: destinationBucket.bucketName,
+        SQS_QUEUE_NAME: SQS_QUEUE_NAME
       }
     });
 

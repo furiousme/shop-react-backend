@@ -1,6 +1,8 @@
 import { PRODUCTS_TABLE_NAME, STOCKS_BY_PRODUCT_INDEX_NAME, STOCKS_TABLE_NAME } from './../constants';
-import {CfnOutput, RemovalPolicy, Stack, StackProps} from 'aws-cdk-lib';
+import {CfnOutput, Duration, RemovalPolicy, Stack, StackProps} from 'aws-cdk-lib';
 import { Construct } from 'constructs';
+import * as sqs from 'aws-cdk-lib/aws-sqs';
+
 
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import {Runtime} from 'aws-cdk-lib/aws-lambda'
@@ -9,6 +11,8 @@ import { join } from 'node:path';
 import {HttpApi, HttpStage, HttpMethod, CorsHttpMethod} from 'aws-cdk-lib/aws-apigatewayv2';
 import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
 import { AttributeType, TableV2 } from 'aws-cdk-lib/aws-dynamodb';
+import { SqsEventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
+import { Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 
 
 const tablesList = [PRODUCTS_TABLE_NAME, STOCKS_TABLE_NAME];
@@ -75,6 +79,36 @@ export class ProductServiceStack extends Stack {
       table.grantReadWriteData(createProduct);
     })
 
+
+    const queue = new sqs.Queue(this, 'catalogItemsQueue', {
+      visibilityTimeout: Duration.seconds(300),
+      queueName: 'catalogItemsQueue',
+    });
+
+    const catalogBatchProcess = new NodejsFunction(this, 'catalogBatchProcessHandler', {
+      runtime: Runtime.NODEJS_20_X,
+      handler: "handler",
+      entry: join(__dirname + "/handlers/catalog-batch-process/catalog-batch-process.ts"),
+      timeout: Duration.seconds(30),
+    });
+
+    catalogBatchProcess.addToRolePolicy(
+      new PolicyStatement({
+        effect: Effect.ALLOW,
+        actions: [
+          'sqs:ReceiveMessage',
+          'sqs:DeleteMessage',
+          'sqs:GetQueueAttributes'
+        ],
+        resources: ['*'],
+      })
+    );
+
+    catalogBatchProcess.addEventSource(new SqsEventSource(queue, {
+      batchSize: 5,
+      reportBatchItemFailures: true
+    }),);
+
     const httpApi = new HttpApi(this, 'HttpApi', {
       corsPreflight: {
         allowMethods: [
@@ -113,8 +147,7 @@ export class ProductServiceStack extends Stack {
       integration: new HttpLambdaIntegration('GetProductsByIdIntegration', getProductsById),
     });
 
-    new CfnOutput(this, "HttpApiUrl", {
-      value: httpApi.url || "",
-    });
+    new CfnOutput(this, "HttpApiUrl", { value: httpApi.url || ""});
+    new CfnOutput(this, 'QueueUrl', { value: queue.queueUrl }); 
   }
 }
