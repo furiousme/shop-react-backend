@@ -1,4 +1,4 @@
-import { PRODUCTS_TABLE_NAME, STOCKS_BY_PRODUCT_INDEX_NAME, STOCKS_TABLE_NAME } from './../constants';
+import { PRODUCTS_TABLE_NAME, SQS_QUEUE_NAME, STOCKS_BY_PRODUCT_INDEX_NAME, STOCKS_TABLE_NAME } from './../constants';
 import {CfnOutput, Duration, RemovalPolicy, Stack, StackProps} from 'aws-cdk-lib';
 import { Construct } from 'constructs';
 import * as sqs from 'aws-cdk-lib/aws-sqs';
@@ -12,7 +12,7 @@ import {HttpApi, HttpStage, HttpMethod, CorsHttpMethod} from 'aws-cdk-lib/aws-ap
 import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
 import { AttributeType, TableV2 } from 'aws-cdk-lib/aws-dynamodb';
 import { SqsEventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
-import { Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
+import { AnyPrincipal, Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 
 
 const tablesList = [PRODUCTS_TABLE_NAME, STOCKS_TABLE_NAME];
@@ -79,17 +79,32 @@ export class ProductServiceStack extends Stack {
       table.grantReadWriteData(createProduct);
     })
 
-
     const queue = new sqs.Queue(this, 'catalogItemsQueue', {
       visibilityTimeout: Duration.seconds(300),
       queueName: 'catalogItemsQueue',
     });
+
+    queue.addToResourcePolicy(
+      new PolicyStatement({
+        effect: Effect.ALLOW,
+        principals: [new AnyPrincipal()],
+        actions: [
+          'sqs:SendMessage',
+          "sqs:GetQueueUrl",
+          'sqs:GetQueueAttributes'
+        ],
+        resources: ['*'],
+      })
+    )
 
     const catalogBatchProcess = new NodejsFunction(this, 'catalogBatchProcessHandler', {
       runtime: Runtime.NODEJS_20_X,
       handler: "handler",
       entry: join(__dirname + "/handlers/catalog-batch-process/catalog-batch-process.ts"),
       timeout: Duration.seconds(30),
+      environment: {
+        SQS_QUEUE_NAME: SQS_QUEUE_NAME
+      }
     });
 
     catalogBatchProcess.addToRolePolicy(
