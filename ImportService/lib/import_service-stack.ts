@@ -10,6 +10,7 @@ import { join } from 'node:path';
 import { Deployment, LambdaIntegration, LambdaRestApi, Stage } from 'aws-cdk-lib/aws-apigateway';
 import { CorsHttpMethod } from 'aws-cdk-lib/aws-apigatewayv2';
 import { LambdaDestination } from 'aws-cdk-lib/aws-s3-notifications';
+import { Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
 
 
 export class ImportServiceStack extends cdk.Stack {
@@ -54,6 +55,17 @@ export class ImportServiceStack extends cdk.Stack {
       }
     });
 
+    importFileParser.addToRolePolicy(
+      new PolicyStatement({
+        effect: Effect.ALLOW,
+        actions: [
+          'sqs:SendMessage',
+          'sqs:GetQueueAttributes'
+        ],
+        resources: ['*'],
+      })
+    );
+
     bucket.grantReadWrite(importProductsFile);
     bucket.grantReadWrite(importFileParser);
     destinationBucket.grantWrite(importFileParser);
@@ -66,14 +78,7 @@ export class ImportServiceStack extends cdk.Stack {
         handler: importProductsFile,
         proxy: false,
       defaultCorsPreflightOptions: {
-        allowMethods: [
-          CorsHttpMethod.GET,
-          CorsHttpMethod.POST,
-          CorsHttpMethod.PUT,
-          CorsHttpMethod.PATCH,
-          CorsHttpMethod.DELETE,
-          CorsHttpMethod.OPTIONS,
-        ],
+        allowMethods: [CorsHttpMethod.GET],
         allowHeaders: ['Content-Type', 'X-Amz-Date', 'X-Amz-Security-Token', 'Authorization', 'X-Api-Key', 'X-Requested-With', 'Accept', 'Access-Control-Allow-Methods', 'Access-Control-Allow-Origin', 'Access-Control-Allow-Headers'],
         allowOrigins: ["*"],
     }

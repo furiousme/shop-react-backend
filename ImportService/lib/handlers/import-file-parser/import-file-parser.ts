@@ -1,6 +1,6 @@
 const csv = require("csv-parser");
 
-import { FIXME, Product, ProductWithStock } from './../../../../ProductService/models/index';
+import { FIXME, ProductWithStock } from './../../../../ProductService/models/index';
 
 import { CopyObjectCommand, DeleteObjectCommand, GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import {GetQueueUrlCommand, SQS, SendMessageBatchCommand} from "@aws-sdk/client-sqs"
@@ -8,7 +8,7 @@ import { Readable } from 'stream';
 import {randomUUID} from "node:crypto"; 
 
 const s3client = new S3Client();
-const sqsClient = new SQS();
+const sqsClient = new SQS({region: "eu-west-1"});
 
 
 export const handler = async (event: FIXME) => {
@@ -50,18 +50,9 @@ export const handler = async (event: FIXME) => {
             console.log("PARSED DATA:", JSON.stringify(parsedResult));
 
             try {
-              await s3client.send(copyCommand);
-              await s3client.send(deleteCommand);
-
-              console.log("The file was successfully moved");
-            } catch (e) {
-              console.log("Error moving the file:", JSON.stringify(e));
-            }
-
-            try {
-              const { QueueUrl } = await sqsClient.send( new GetQueueUrlCommand({
-                QueueName: process.env.SQS_QUEUE_NAME,
-              }));
+                const response = await sqsClient.send( new GetQueueUrlCommand({
+                  QueueName: process.env.SQS_QUEUE_NAME,
+                }));
 
               const records = parsedResult.map((product) => {
                 return {
@@ -76,12 +67,23 @@ export const handler = async (event: FIXME) => {
               });
                     
               await sqsClient.send(new SendMessageBatchCommand({
-                QueueUrl,
+                QueueUrl: response.QueueUrl,
                 Entries: records,
               }));
+
+              console.log("Messages were successfully sent to SQS");
             } catch (e) {
               console.log("Error sending messages to SQS")
               console.log(e)
+            }
+
+            try {
+              await s3client.send(copyCommand);
+              await s3client.send(deleteCommand);
+
+              console.log("The file was successfully moved");
+            } catch (e) {
+              console.log("Error moving the file:", JSON.stringify(e));
             }
 
             resolve(parsedResult);
