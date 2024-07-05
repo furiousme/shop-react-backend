@@ -13,7 +13,7 @@ import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations
 import { AttributeType, TableV2 } from 'aws-cdk-lib/aws-dynamodb';
 import { SqsEventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
 import { AnyPrincipal, Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
-import { Topic } from 'aws-cdk-lib/aws-sns';
+import { SubscriptionFilter, Topic } from 'aws-cdk-lib/aws-sns';
 import { EmailSubscription } from 'aws-cdk-lib/aws-sns-subscriptions';
 import { ConfigProps } from '../../config';
 
@@ -80,7 +80,21 @@ export class ProductServiceStack extends Stack {
 			displayName: 'Topic for imported products',
 		});
 
-    snsTopic.addSubscription(new EmailSubscription(props?.config.EMAIL_FOR_SNS || ""));
+    snsTopic.addSubscription(new EmailSubscription(props?.config.EMAIL_FOR_SNS || "", {
+      filterPolicy: {
+        count: SubscriptionFilter.numericFilter({
+          lessThan: 100,
+        }),
+      },
+    }));
+
+    snsTopic.addSubscription(new EmailSubscription(props?.config.EMAIL_FOR_SNS_SMALL_COUNT || "", {
+      filterPolicy: {
+        count: SubscriptionFilter.numericFilter({
+          greaterThan: 99,
+        }),
+      },
+    }));
 
     const getProductsList = new NodejsFunction(this, "getProductsListHandler", {
       runtime: Runtime.NODEJS_20_X,

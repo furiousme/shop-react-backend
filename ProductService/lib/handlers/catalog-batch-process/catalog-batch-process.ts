@@ -37,7 +37,7 @@ export const handler = async (event: SQSEvent) => {
 
         const newProductId = randomUUID();
 
-        const newProduct ={
+        const newProduct = {
             id: newProductId,
             title: jsonObject.title,
             description: jsonObject.description,
@@ -67,6 +67,27 @@ export const handler = async (event: SQSEvent) => {
             }))
             .then(() => {
                 console.log("PRODUCT AND STOCK WERE SUCCESSFULLY SAVED");
+
+                snsClient.send(new PublishCommand({
+                    TopicArn: process.env.SNS_TOPIC_ARN,
+                    Message: JSON.stringify({
+                        newProduct,
+                        newStock
+                    }), 
+                    Subject: "New Product Added",
+                    MessageAttributes: {
+                        count: {
+                            DataType: "Number",
+                            StringValue: `${newStock.count}`,
+                        },
+                    },
+                }))
+                .then(() => {
+                    console.log("Message was successfully sent to SNS");
+                })
+                .catch((e) => {
+                    console.log("Failed to send message to SNS", e);
+                })
             })
             .catch(e => {
                 console.log("Error sending items to db", e)
@@ -77,15 +98,6 @@ export const handler = async (event: SQSEvent) => {
     try {
         await Promise.all(promises);
 
-        try {
-            await snsClient.send(new PublishCommand({
-                TopicArn: process.env.SNS_TOPIC_ARN,
-                Message: "New products were imported", 
-                Subject: "New Products",
-            }))
-        } catch (e) {
-            console.log("Failed to send notification to SQS topic");
-        }
 
         console.log("Not handled items:", JSON.stringify(batchItemFailures));
 
