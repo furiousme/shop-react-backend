@@ -36,7 +36,7 @@ export const handler = async (event: APIGatewayProxyEvent) => {
         const message = validationError?.message && field ? `"${field}" ${validationError.message}` : "Provided data is incorrect";
 
         return {
-            statusCode: 422,
+            statusCode: 400,
             headers: defaultHeaders,
             body: JSON.stringify({success: false, error: { message }})
         }

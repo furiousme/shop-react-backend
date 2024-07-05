@@ -22,13 +22,6 @@ export const handler = async (event: SQSEvent) => {
           };
     }
 
-    if (!records) {
-        return {
-            statusCode: 400,
-            body: JSON.stringify({ success: false, body: "No records present"}),
-          };
-    }
-
     const batchItemFailures: SQSBatchItemFailure[] = [];
 
     const promises = records.map(async (record) => {
