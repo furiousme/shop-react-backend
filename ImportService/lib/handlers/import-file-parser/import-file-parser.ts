@@ -1,3 +1,4 @@
+import { ProductSchema } from './../../../../ProductService/schemas/index';
 const csv = require("csv-parser");
 
 import { FIXME, ProductWithStock } from './../../../../ProductService/models/index';
@@ -6,10 +7,13 @@ import { CopyObjectCommand, DeleteObjectCommand, GetObjectCommand, S3Client } fr
 import {GetQueueUrlCommand, SQS, SendMessageBatchCommand} from "@aws-sdk/client-sqs"
 import { Readable } from 'stream';
 import {randomUUID} from "node:crypto"; 
+import Ajv from "ajv";
+
 
 const s3client = new S3Client();
 const sqsClient = new SQS({region: "eu-west-1"});
 
+const ajv = new Ajv();
 
 export const handler = async (event: FIXME) => {
     console.log("EVENT:", JSON.stringify(event));
@@ -40,53 +44,51 @@ export const handler = async (event: FIXME) => {
       if (!(Body instanceof Readable)) {
         throw new Error('Body is not a readable stream');
       }
+
+      const validate = ajv.compile<Omit<ProductWithStock, "id">>(ProductSchema)
       
-      const parsedResult: ProductWithStock[] = [];
-
-      return new Promise((resolve, reject) => {
+      return new Promise(async (resolve, reject) => {
+        const response = await sqsClient.send( new GetQueueUrlCommand({
+          QueueName: process.env.SQS_QUEUE_NAME,
+        }));
+        
         Body.pipe(csv())
-          .on('data', (data: ProductWithStock) => parsedResult.push(data))
+          .on('data', (data: ProductWithStock) => {
+            const newRecord = {
+              id: randomUUID(),
+              title: data.title,
+              description: data.description,
+              price: Number(data.price),
+              count: Number(data.count),
+            }
+            
+            console.log("PARSED ROW", newRecord);
+            const isValid = validate(newRecord);
+
+            if (isValid) {
+                sqsClient.send(new SendMessageBatchCommand({
+                  QueueUrl: response.QueueUrl,
+                  Entries: [{
+                    Id: randomUUID(),
+                    MessageBody: JSON.stringify(newRecord),
+                  }],
+                }));                
+                console.log("RECORD WAS SENT TO SQS")
+              } else {
+              console.log("Product data is not valid");
+            }
+          })
           .on('end', async () => {
-            console.log("PARSED DATA:", JSON.stringify(parsedResult));
+              try {
+                await s3client.send(copyCommand);
+                await s3client.send(deleteCommand);
 
-            try {
-                const response = await sqsClient.send( new GetQueueUrlCommand({
-                  QueueName: process.env.SQS_QUEUE_NAME,
-                }));
+                console.log("The file was successfully moved");
+              } catch (e) {
+                console.log("Error moving the file:", JSON.stringify(e));
+              }
 
-              const records = parsedResult.map((product) => {
-                return {
-                  Id: randomUUID(),
-                  MessageBody: JSON.stringify({
-                    title: product?.title,
-                    description: product?.description,
-                    price: Number(product?.price),
-                    count: Number(product?.count),
-                  }),
-                };
-              });
-                    
-              await sqsClient.send(new SendMessageBatchCommand({
-                QueueUrl: response.QueueUrl,
-                Entries: records,
-              }));
-
-              console.log("Messages were successfully sent to SQS");
-            } catch (e) {
-              console.log("Error sending messages to SQS")
-              console.log(e)
-            }
-
-            try {
-              await s3client.send(copyCommand);
-              await s3client.send(deleteCommand);
-
-              console.log("The file was successfully moved");
-            } catch (e) {
-              console.log("Error moving the file:", JSON.stringify(e));
-            }
-
-            resolve(parsedResult);
+              resolve(true);
           })
           .on('error', (err: unknown) => reject(err));
       });

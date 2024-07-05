@@ -49,6 +49,7 @@ export class ImportServiceStack extends cdk.Stack {
       runtime: Runtime.NODEJS_20_X,
       handler: "handler",
       entry: join(__dirname + "/handlers/import-file-parser/import-file-parser.ts"),
+      timeout: cdk.Duration.seconds(30),
       environment: {
         DESTINATION_BUCKET_NAME: destinationBucket.bucketName,
         SQS_QUEUE_NAME: SQS_QUEUE_NAME
@@ -99,8 +100,8 @@ export class ImportServiceStack extends cdk.Stack {
       }
     );
 
-    new CfnOutput(this, "ImportApiUrl", {
-      value: restApi.url || "",
-    });
+  new CfnOutput(this, "ImportApiUrl", {
+    value: restApi.url || "",
+  });
   }
 }
