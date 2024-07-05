@@ -11,10 +11,14 @@ import { Deployment, LambdaIntegration, LambdaRestApi, Stage } from 'aws-cdk-lib
 import { CorsHttpMethod } from 'aws-cdk-lib/aws-apigatewayv2';
 import { LambdaDestination } from 'aws-cdk-lib/aws-s3-notifications';
 import { Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
+import { ConfigProps } from '../../config';
 
+type ImportServiceStackProps = cdk.StackProps & {
+  config: Readonly<ConfigProps>;
+};
 
 export class ImportServiceStack extends cdk.Stack {
-  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
+  constructor(scope: Construct, id: string, props?: ImportServiceStackProps) {
     super(scope, id, props);
 
     const bucket = new Bucket(this, 'ImportProductsFileBucket', {
@@ -98,7 +102,7 @@ export class ImportServiceStack extends cdk.Stack {
           "method.request.querystring.name": true
         }
       }
-    );
+  );
 
   new CfnOutput(this, "ImportApiUrl", {
     value: restApi.url || "",

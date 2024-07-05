@@ -13,12 +13,18 @@ import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations
 import { AttributeType, TableV2 } from 'aws-cdk-lib/aws-dynamodb';
 import { SqsEventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
 import { AnyPrincipal, Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
+import { Topic } from 'aws-cdk-lib/aws-sns';
+import { EmailSubscription } from 'aws-cdk-lib/aws-sns-subscriptions';
+import { ConfigProps } from '../../config';
 
+type ProductServiceStackProps = StackProps & {
+  config: Readonly<ConfigProps>;
+};
 
 const tablesList = [PRODUCTS_TABLE_NAME, STOCKS_TABLE_NAME];
 
 export class ProductServiceStack extends Stack {
-  constructor(scope: Construct, id: string, props?: StackProps) {
+  constructor(scope: Construct, id: string, props?: ProductServiceStackProps) {
     super(scope, id, props);
 
     const tableNamePairs: Record<string, TableV2> = tablesList.reduce((acc, item) => {
@@ -68,7 +74,13 @@ export class ProductServiceStack extends Stack {
         ],
         resources: ['*'],
       })
-    )
+    );
+
+    const snsTopic = new Topic(this, 'ProductsSNSTopic', {
+			displayName: 'Topic for imported products',
+		});
+
+    snsTopic.addSubscription(new EmailSubscription(props?.config.EMAIL_FOR_SNS || ""));
 
     const getProductsList = new NodejsFunction(this, "getProductsListHandler", {
       runtime: Runtime.NODEJS_20_X,
@@ -98,9 +110,12 @@ export class ProductServiceStack extends Stack {
       timeout: Duration.seconds(30),
       environment: {
         SQS_QUEUE_NAME: queue.queueName,
+        SNS_TOPIC_ARN: snsTopic.topicArn,
         ...tableNamesAsEnvs
       }
     });
+
+		snsTopic.grantPublish(catalogBatchProcess);
 
     Object.values(tableNamePairs).forEach(table => {
       table.grantReadData(getProductsList);
