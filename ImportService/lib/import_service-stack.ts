@@ -7,7 +7,7 @@ import {Bucket, BlockPublicAccess, HttpMethods, EventType} from "aws-cdk-lib/aws
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import { Runtime } from 'aws-cdk-lib/aws-lambda';
 import { join } from 'node:path';
-import { AuthorizationType, Deployment, LambdaIntegration, LambdaRestApi, Stage, TokenAuthorizer } from 'aws-cdk-lib/aws-apigateway';
+import { AuthorizationType, Cors, Deployment, LambdaIntegration, LambdaRestApi, Stage, TokenAuthorizer } from 'aws-cdk-lib/aws-apigateway';
 import { CorsHttpMethod } from 'aws-cdk-lib/aws-apigatewayv2';
 import { LambdaDestination } from 'aws-cdk-lib/aws-s3-notifications';
 import { Effect, PolicyStatement, ServicePrincipal } from 'aws-cdk-lib/aws-iam';
@@ -83,7 +83,7 @@ export class ImportServiceStack extends cdk.Stack {
         proxy: false,
         defaultCorsPreflightOptions: {
           allowMethods: [CorsHttpMethod.GET],
-          allowHeaders: ['Content-Type', 'X-Amz-Date', 'X-Amz-Security-Token', 'Authorization', 'X-Api-Key', 'X-Requested-With', 'Accept', 'Access-Control-Allow-Methods', 'Access-Control-Allow-Origin', 'Access-Control-Allow-Headers'],
+          allowHeaders: ["*"],
           allowOrigins: ["*"],
       }
     });
@@ -105,7 +105,13 @@ export class ImportServiceStack extends cdk.Stack {
       resultsCacheTtl: cdk.Duration.seconds(0),
     });
 
-    const importResource = restApi.root.addResource('import');
+    const importResource = restApi.root.addResource('import', {
+      defaultCorsPreflightOptions: {
+        allowOrigins: Cors.ALL_ORIGINS,
+        allowHeaders: Cors.DEFAULT_HEADERS,
+        allowMethods: ['GET']
+      }
+    });
 
     importResource.addMethod("GET", importsIntegration,
         {
