@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Put } from '@nestjs/common';
+import { Body, Controller, Delete, Get, HttpException, HttpStatus, Param, Post, Put } from '@nestjs/common';
 import { AppService } from './app.service';
 
 @Controller()
@@ -7,31 +7,73 @@ export class AppController {
 
   @Get('product')
   getProductsList() {
-    return this.appService.getProductsList();
+    try {
+      return this.appService.getProductsList();
+    } catch (error) {
+      throw new HttpException(
+        error.response?.data || 'An error occurred',
+        error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
   }
 
   @Get('product/:productId')
   getProductById(@Param("productId") productId: string) {
-    return this.appService.getProductById(productId);
+    try {
+      return this.appService.getProductById(productId);
+    } catch (error) {
+      throw new HttpException(
+        error.response?.data || 'An error occurred',
+        error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
   }
 
   @Post('product')
   createProduct(@Body() body) {
-    return this.appService.createProduct(body);
+    try {
+      return this.appService.createProduct(body);
+    } catch (error) {
+      throw new HttpException(
+        error.response?.data || 'An error occurred',
+        error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
   }
 
   @Get('cart')
   getCart() {
-    return this.appService.getCart()
+    try {
+      return this.appService.getCart();
+    } catch (error) {
+      throw new HttpException(
+        error.response?.data || 'An error occurred',
+        error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
   }
 
   @Put('cart')
   updateUserCart(@Body() body) {
-    return this.appService.updateUserCart(body)
+    try {
+      return this.appService.updateUserCart(body)
+    } catch (error) {
+      throw new HttpException(
+        error.response?.data || 'An error occurred',
+        error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
   }
 
   @Delete('cart')
   clearUserCart() {
-    return this.appService.clearUserCart()
+    try {
+      return this.appService.clearUserCart()
+    } catch (error) {
+      throw new HttpException(
+        error.response?.data || 'An error occurred',
+        error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
   }
 }
