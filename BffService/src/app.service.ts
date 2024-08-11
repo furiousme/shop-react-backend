@@ -1,26 +1,27 @@
 import { HttpService } from '@nestjs/axios';
-import { HttpException, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { urlMap } from './constants';
 import { catchError, firstValueFrom } from 'rxjs';
-import { AxiosError } from 'axios';
+import { handleFetchErrors } from 'utils';
 
 @Injectable()
 export class AppService {
+  private productBaseUrl: string;
+  private cartBaseUrl: string;
+
   constructor(
     private readonly configService: ConfigService,
     private readonly httpService: HttpService
-  ) {}
+  ) {
+    this.cartBaseUrl = this.configService.get(`${urlMap.cart}`);
+    this.productBaseUrl = this.configService.get(`${urlMap.product}`);
+  }
 
   async getProductById(productId: string) {
-    const url = this.configService.get(`${urlMap.product}`);
-    
     const { data } = await firstValueFrom(
-      this.httpService.get(`${url}/products/${productId}`).pipe(
-        catchError((error: AxiosError) => {
-          console.log(error.response.data);
-          throw new HttpException(error.response.data, error.response.status);
-        }),
+      this.httpService.get(`${this.productBaseUrl}/products/${productId}`).pipe(
+        catchError(handleFetchErrors),
       ),
     );
 
@@ -28,14 +29,9 @@ export class AppService {
   }
 
   async getProductsList() {
-    const url = this.configService.get(`${urlMap.product}`);
-    
     const { data } = await firstValueFrom(
-      this.httpService.get(`${url}/products`).pipe(
-        catchError((error: AxiosError) => {
-          console.log(error.response.data);
-          throw new HttpException(error.response.data, error.response.status);
-        }),
+      this.httpService.get(`${this.productBaseUrl}/products`).pipe(
+        catchError(handleFetchErrors),
       ),
     );
 
@@ -43,14 +39,9 @@ export class AppService {
   }
 
   async createProduct(body) {
-    const url = this.configService.get(`${urlMap.product}`);
-    
     const { data } = await firstValueFrom(
-      this.httpService.post(`${url}/products`, body).pipe(
-        catchError((error: AxiosError) => {
-          console.log(error.response.data);
-          throw new HttpException(error.response.data, error.response.status);
-        }),
+      this.httpService.post(`${this.productBaseUrl}/products`, body).pipe(
+        catchError(handleFetchErrors),
       ),
     );
 
@@ -58,14 +49,9 @@ export class AppService {
   }
 
   async getCart() {
-    const url = this.configService.get(`${urlMap.cart}`);
-    
     const { data } = await firstValueFrom(
-      this.httpService.get(`${url}/profile/cart`).pipe(
-        catchError((error: AxiosError) => {
-          console.log(error.response.data);
-          throw new HttpException(error.response.data, error.response.status);
-        }),
+      this.httpService.get(`${this.cartBaseUrl}/profile/cart`).pipe(
+        catchError(handleFetchErrors),
       ),
     );
 
@@ -89,30 +75,20 @@ export class AppService {
     };
   }
 
-  async updateUserCart(body) {
-    const url = this.configService.get(`${urlMap.cart}`);
-    
+  async updateUserCart(body) {    
     const { data } = await firstValueFrom(
-      this.httpService.put(`${url}/profile/cart`, body).pipe(
-        catchError((error: AxiosError) => {
-          console.log(error.response.data);
-          throw new HttpException(error.response.data, error.response.status);
-        }),
+      this.httpService.put(`${this.cartBaseUrl}/profile/cart`, body).pipe(
+        catchError(handleFetchErrors),
       ),
     );
 
     return data;
   }
 
-  async clearUserCart() {
-    const url = this.configService.get(`${urlMap.cart}`);
-    
+  async clearUserCart() {    
     const { data } = await firstValueFrom(
-      this.httpService.delete(`${url}/profile/cart`).pipe(
-        catchError((error: AxiosError) => {
-          console.log(error.response.data);
-          throw new HttpException(error.response.data, error.response.status);
-        }),
+      this.httpService.delete(`${this.cartBaseUrl}/profile/cart`).pipe(
+        catchError(handleFetchErrors),
       ),
     );
 

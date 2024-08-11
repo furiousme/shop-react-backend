@@ -1,19 +1,22 @@
 import { Body, Controller, Delete, Get, HttpException, HttpStatus, Param, Post, Put } from '@nestjs/common';
 import { AppService } from './app.service';
+import { returnResponseError } from 'utils';
 
 @Controller()
 export class AppController {
   constructor(private readonly appService: AppService) {}
+
+  @Get()
+  getUnsupportedPath() {
+    throw new HttpException("Cannot process request", HttpStatus.BAD_GATEWAY)
+  }
 
   @Get('product')
   getProductsList() {
     try {
       return this.appService.getProductsList();
     } catch (error) {
-      throw new HttpException(
-        error.response?.data || 'An error occurred',
-        error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR
-      );
+      returnResponseError(error);
     }
   }
 
@@ -22,10 +25,7 @@ export class AppController {
     try {
       return this.appService.getProductById(productId);
     } catch (error) {
-      throw new HttpException(
-        error.response?.data || 'An error occurred',
-        error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR
-      );
+      returnResponseError(error);
     }
   }
 
@@ -34,10 +34,7 @@ export class AppController {
     try {
       return this.appService.createProduct(body);
     } catch (error) {
-      throw new HttpException(
-        error.response?.data || 'An error occurred',
-        error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR
-      );
+      returnResponseError(error);
     }
   }
 
@@ -46,10 +43,7 @@ export class AppController {
     try {
       return this.appService.getCart();
     } catch (error) {
-      throw new HttpException(
-        error.response?.data || 'An error occurred',
-        error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR
-      );
+      returnResponseError(error);
     }
   }
 
@@ -58,10 +52,7 @@ export class AppController {
     try {
       return this.appService.updateUserCart(body)
     } catch (error) {
-      throw new HttpException(
-        error.response?.data || 'An error occurred',
-        error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR
-      );
+      returnResponseError(error);
     }
   }
 
@@ -70,10 +61,7 @@ export class AppController {
     try {
       return this.appService.clearUserCart()
     } catch (error) {
-      throw new HttpException(
-        error.response?.data || 'An error occurred',
-        error.response?.status || HttpStatus.INTERNAL_SERVER_ERROR
-      );
+      returnResponseError(error);
     }
   }
 }
