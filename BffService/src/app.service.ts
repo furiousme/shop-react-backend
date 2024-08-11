@@ -56,4 +56,66 @@ export class AppService {
 
     return data;
   }
+
+  async getCart() {
+    const url = this.configService.get(`${urlMap.cart}`);
+    
+    const { data } = await firstValueFrom(
+      this.httpService.get(`${url}/profile/cart`).pipe(
+        catchError((error: AxiosError) => {
+          console.log(error.response.data);
+          throw error;
+        }),
+      ),
+    );
+
+    const cart = data.data;
+    const {items} = cart;
+
+    const productsPromises = items.map((el) => this.getProductById(el.productId));
+    const productsWithFullData = await Promise.all(productsPromises);
+
+    const itemsWithProducts = items.map(el => ({
+      ...el,
+      product: productsWithFullData.find(i => i.id === el.productId)
+    }))
+
+    return {
+      ...data,
+      data: {
+        ...cart,
+        items: itemsWithProducts
+      }
+    };
+  }
+
+  async updateUserCart(body) {
+    const url = this.configService.get(`${urlMap.cart}`);
+    
+    const { data } = await firstValueFrom(
+      this.httpService.put(`${url}/profile/cart`, body).pipe(
+        catchError((error: AxiosError) => {
+          console.log(error.response.data);
+          throw error;
+        }),
+      ),
+    );
+
+    return data;
+  }
+
+  async clearUserCart() {
+    const url = this.configService.get(`${urlMap.cart}`);
+    
+    const { data } = await firstValueFrom(
+      this.httpService.delete(`${url}/profile/cart`).pipe(
+        catchError((error: AxiosError) => {
+          console.log(error.response.data);
+          throw error;
+        }),
+      ),
+    );
+
+    return data;
+  }
 }
