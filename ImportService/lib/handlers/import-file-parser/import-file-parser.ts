@@ -45,13 +45,13 @@ export const handler = async (event: FIXME) => {
         throw new Error('Body is not a readable stream');
       }
 
-      const validate = ajv.compile<Omit<ProductWithStock, "id">>(ProductSchema)
+      const validate = ajv.compile<Omit<ProductWithStock, "id">>(ProductSchema);
+
+      const response = await sqsClient.send(new GetQueueUrlCommand({
+        QueueName: process.env.SQS_QUEUE_NAME,
+      }));
       
-      return new Promise(async (resolve, reject) => {
-        const response = await sqsClient.send( new GetQueueUrlCommand({
-          QueueName: process.env.SQS_QUEUE_NAME,
-        }));
-        
+      return new Promise((resolve, reject) => {
         Body.pipe(csv())
           .on('data', (data: ProductWithStock) => {
             const newRecord = {
