@@ -1,6 +1,8 @@
 import { PRODUCTS_TABLE_NAME, STOCKS_BY_PRODUCT_INDEX_NAME, STOCKS_TABLE_NAME } from './../constants';
-import {CfnOutput, RemovalPolicy, Stack, StackProps} from 'aws-cdk-lib';
+import {CfnOutput, Duration, RemovalPolicy, Stack, StackProps} from 'aws-cdk-lib';
 import { Construct } from 'constructs';
+import * as sqs from 'aws-cdk-lib/aws-sqs';
+
 
 import { NodejsFunction } from 'aws-cdk-lib/aws-lambda-nodejs';
 import {Runtime} from 'aws-cdk-lib/aws-lambda'
@@ -9,12 +11,20 @@ import { join } from 'node:path';
 import {HttpApi, HttpStage, HttpMethod, CorsHttpMethod} from 'aws-cdk-lib/aws-apigatewayv2';
 import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
 import { AttributeType, TableV2 } from 'aws-cdk-lib/aws-dynamodb';
+import { SqsEventSource } from 'aws-cdk-lib/aws-lambda-event-sources';
+import { AnyPrincipal, Effect, PolicyStatement } from 'aws-cdk-lib/aws-iam';
+import { SubscriptionFilter, Topic } from 'aws-cdk-lib/aws-sns';
+import { EmailSubscription } from 'aws-cdk-lib/aws-sns-subscriptions';
+import { ConfigProps } from '../../config';
 
+type ProductServiceStackProps = StackProps & {
+  config: Readonly<ConfigProps>;
+};
 
 const tablesList = [PRODUCTS_TABLE_NAME, STOCKS_TABLE_NAME];
 
 export class ProductServiceStack extends Stack {
-  constructor(scope: Construct, id: string, props?: StackProps) {
+  constructor(scope: Construct, id: string, props?: ProductServiceStackProps) {
     super(scope, id, props);
 
     const tableNamePairs: Record<string, TableV2> = tablesList.reduce((acc, item) => {
@@ -48,6 +58,44 @@ export class ProductServiceStack extends Stack {
       "STOCKS_TABLE_NAME": tableNamePairs[STOCKS_TABLE_NAME].tableName,
     }
 
+    const queue = new sqs.Queue(this, 'catalogItemsQueue', {
+      visibilityTimeout: Duration.seconds(300),
+      queueName: 'catalogItemsQueue',
+    });
+
+    queue.addToResourcePolicy(
+      new PolicyStatement({
+        effect: Effect.ALLOW,
+        principals: [new AnyPrincipal()],
+        actions: [
+          'sqs:SendMessage',
+          "sqs:GetQueueUrl",
+          'sqs:GetQueueAttributes'
+        ],
+        resources: ['*'],
+      })
+    );
+
+    const snsTopic = new Topic(this, 'ProductsSNSTopic', {
+			displayName: 'Topic for imported products',
+		});
+
+    snsTopic.addSubscription(new EmailSubscription(props?.config.EMAIL_FOR_SNS || "", {
+      filterPolicy: {
+        count: SubscriptionFilter.numericFilter({
+          lessThan: 100,
+        }),
+      },
+    }));
+
+    snsTopic.addSubscription(new EmailSubscription(props?.config.EMAIL_FOR_SNS_SMALL_COUNT || "", {
+      filterPolicy: {
+        count: SubscriptionFilter.numericFilter({
+          greaterThan: 99,
+        }),
+      },
+    }));
+
     const getProductsList = new NodejsFunction(this, "getProductsListHandler", {
       runtime: Runtime.NODEJS_20_X,
       handler: "handler",
@@ -69,11 +117,43 @@ export class ProductServiceStack extends Stack {
       environment: tableNamesAsEnvs,
     });
 
+    const catalogBatchProcess = new NodejsFunction(this, 'catalogBatchProcessHandler', {
+      runtime: Runtime.NODEJS_20_X,
+      handler: "handler",
+      entry: join(__dirname + "/handlers/catalog-batch-process/catalog-batch-process.ts"),
+      timeout: Duration.seconds(30),
+      environment: {
+        SQS_QUEUE_NAME: queue.queueName,
+        SNS_TOPIC_ARN: snsTopic.topicArn,
+        ...tableNamesAsEnvs
+      }
+    });
+
+		snsTopic.grantPublish(catalogBatchProcess);
+
     Object.values(tableNamePairs).forEach(table => {
       table.grantReadData(getProductsList);
       table.grantReadData(getProductsById);
       table.grantReadWriteData(createProduct);
+      table.grantWriteData(catalogBatchProcess);
     })
+
+    catalogBatchProcess.addToRolePolicy(
+      new PolicyStatement({
+        effect: Effect.ALLOW,
+        actions: [
+          'sqs:ReceiveMessage',
+          'sqs:DeleteMessage',
+          'sqs:GetQueueAttributes'
+        ],
+        resources: ['*'],
+      })
+    );
+
+    catalogBatchProcess.addEventSource(new SqsEventSource(queue, {
+      batchSize: 5,
+      reportBatchItemFailures: true
+    }),);
 
     const httpApi = new HttpApi(this, 'HttpApi', {
       corsPreflight: {
@@ -113,8 +193,7 @@ export class ProductServiceStack extends Stack {
       integration: new HttpLambdaIntegration('GetProductsByIdIntegration', getProductsById),
     });
 
-    new CfnOutput(this, "HttpApiUrl", {
-      value: httpApi.url || "",
-    });
+    new CfnOutput(this, "HttpApiUrl", { value: httpApi.url || ""});
+    new CfnOutput(this, 'QueueUrl', { value: queue.queueUrl }); 
   }
 }

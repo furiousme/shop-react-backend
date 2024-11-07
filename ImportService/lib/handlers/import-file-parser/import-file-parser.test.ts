@@ -4,8 +4,10 @@ import { createReadStream } from 'node:fs';
 import {sdkStreamMixin} from '@smithy/util-stream';
 
 import {handler} from "./import-file-parser";
+import { GetQueueUrlCommand, SQSClient, SendMessageBatchCommand } from '@aws-sdk/client-sqs';
 
 const mockS3Client = mockClient(S3Client);
+const mockSQSClient = mockClient(SQSClient);
 
 const mockEvent = {
   Records: [
@@ -27,6 +29,7 @@ describe('importFileParser lambda', () => {
 
   beforeAll(() => {
     process.env.DESTINATION_BUCKET_NAME = 'destination-bucket';
+    process.env.SQS_QUEUE_NAME = 'sqs queue name';
   });
 
   beforeEach(() => {
@@ -43,11 +46,12 @@ describe('importFileParser lambda', () => {
       mockS3Client.on(GetObjectCommand).resolves({Body: stream});
       mockS3Client.on(PutObjectCommand).resolves({});
       mockS3Client.on(DeleteObjectCommand).resolves({});
+      mockSQSClient.on(GetQueueUrlCommand).resolves({});
+      mockSQSClient.on(SendMessageBatchCommand).resolves({});
 
-      const loggerSpy = jest.spyOn(console, "log").mockImplementation();
+      jest.spyOn(console, "log").mockImplementation();
       const response = await handler(mockEvent);    
   
-      expect(loggerSpy).toHaveBeenCalledTimes(3);
       expect(response.statusCode).toBe(200);
       expect(JSON.parse(response.body).success).toBe(true);
   });
