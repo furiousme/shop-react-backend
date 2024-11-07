@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 import 'source-map-support/register';
-import { getConfig } from './../../config';
 import * as cdk from 'aws-cdk-lib';
-import { ProductServiceStack } from '../lib/product_service-stack';
+import { AuthorizationServiceStack } from '../lib/authorization_service-stack';
+import { getConfig } from '../../config';
 
 const config = getConfig();
 
 const app = new cdk.App();
-new ProductServiceStack(app, 'ProductServiceStack', {
+new AuthorizationServiceStack(app, 'AuthorizationServiceStack', {
   env: {
     region: config.REGION
   },

@@ -1,13 +1,13 @@
 #!/usr/bin/env node
-import 'source-map-support/register';
 import { getConfig } from './../../config';
+import 'source-map-support/register';
 import * as cdk from 'aws-cdk-lib';
-import { ProductServiceStack } from '../lib/product_service-stack';
+import { ImportServiceStack } from '../lib/import_service-stack';
 
 const config = getConfig();
 
 const app = new cdk.App();
-new ProductServiceStack(app, 'ProductServiceStack', {
+new ImportServiceStack(app, 'ImportServiceStack', {
   env: {
     region: config.REGION
   },

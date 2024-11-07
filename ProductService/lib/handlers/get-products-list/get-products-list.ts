@@ -22,7 +22,7 @@ export const handler = async () => {
     .then(([productsResponse, stocksResponse]) => {
       const products = productsResponse.Items;
       const stocks = stocksResponse.Items;
-
+      
       console.log({products, stocks});
 
       const items =  products && stocks ? prepareProductsWithStock(products, stocks) : [];
